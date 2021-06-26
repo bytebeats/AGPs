@@ -3,13 +3,14 @@ buildscript {
     ext.kotlin_version = "1.5.20"
     repositories {
         google()
-        jcenter()
+//        jcenter()
         mavenCentral()
         mavenLocal()
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:4.1.3"
+        classpath 'com.android.tools.build:gradle:7.0.0-alpha15'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath('io.github.bytebeats:chronus:1.0.0')
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -19,7 +20,7 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
+//        jcenter()
         mavenCentral()
         mavenLocal()
     }
@@ -27,4 +28,19 @@ allprojects {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+ext {
+    GROUP_ID = 'io.github.bytebeats'
+    DEVELOPER_ID = 'bytebeats'
+    DEVELOPER_NAME = 'Chen Pan'
+    DEVELOPER_EMAIL = 'happychinapc@gmail.com'
+    SCM_CONNECTION = 'scm:git:github.com/bytebeats/AGPs.git'
+    SCM_DEVELOPER_CONNECTION = 'scm:git:ssh:github.com/bytebeats/AGPs.git'
+    SCM_URL = 'https://github.com/bytebeats/AGPs/tree/master'
+    LICENSE_NAME = 'The Apache License, Version 2.0'
+    LICENSE_URL = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    POM_URL = 'https://github.com/bytebeats/AGPs'
+    RELEASES_REPO_URL = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+    SNAPSHOTS_REPO_URL = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
 }

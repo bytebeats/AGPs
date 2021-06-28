@@ -1,0 +1,49 @@
+plugins {
+    id 'java-library'
+}
+
+ext {
+    LINT_GROUP = 'com.android.tools.lint'
+    LINT_VERSION = '27.1.3'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_7
+    targetCompatibility = JavaVersion.VERSION_1_7
+}
+
+dependencies {
+    def lintVersion = lintVersionFromAGP()
+    compileOnly("$LINT_GROUP:lint-api:$lintVersion")
+    compileOnly("$LINT_GROUP:lint-checks:$lintVersion")
+}
+
+jar {
+    manifest {
+        //lint version 26-
+//        attributes('Lint-Registry': 'me.bytebeats.lint.core.registry.ProbeIssueRegistry')
+        //lint version 26+
+        attributes('Lint-Registry-v2': 'me.bytebeats.lint.core.registry.ProbeIssueRegistry')
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding('UTF-8')
+}
+//get lint api version from Android Gradle Plugin
+def lintVersionFromAGP() {
+    Set<ResolvedDependency> dependencies = rootProject.buildscript.configurations.classpath.getResolvedConfiguration().firstLevelModuleDependencies
+    dependencies.forEach { d ->
+        if (d.name.contains("com.android.tools.build:gradle")) {
+            String gradlePluginVersion = d.moduleVersion
+            String[] versions = gradlePluginVersion.split("\\.")
+            String xVersion = versions[0]
+            String yVersion = versions[1]
+            String zVersion = versions[2]
+            xVersion = String.valueOf(Integer.valueOf(xVersion) + 23)
+            return "${xVersion}.${yVersion}.${zVersion}"
+        }
+    }
+//    throw new RuntimeException("probe: Android Gradle Plugin not found.")
+    return LINT_VERSION
+}

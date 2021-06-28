@@ -5,12 +5,12 @@ buildscript {
         google()
 //        jcenter()
         mavenCentral()
-        mavenLocal()
+//        mavenLocal()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.0-alpha15'
+        classpath 'com.android.tools.build:gradle:7.1.0-alpha02'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath('io.github.bytebeats:chronus:1.0.0')
+//        classpath('io.github.bytebeats:chronus:1.0.0')
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -22,7 +22,7 @@ allprojects {
         google()
 //        jcenter()
         mavenCentral()
-        mavenLocal()
+//        mavenLocal()
     }
 }
 

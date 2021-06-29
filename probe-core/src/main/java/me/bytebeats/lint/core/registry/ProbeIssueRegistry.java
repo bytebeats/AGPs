@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.List;
 
+import me.bytebeats.lint.core.detector.CamelNamingSpecsDetector;
 import me.bytebeats.lint.core.detector.ParseColorDetector;
 import me.bytebeats.lint.core.detector.LogUsageDetector;
 
@@ -28,7 +29,12 @@ public class ProbeIssueRegistry extends IssueRegistry {
     @NotNull
     @Override
     public List<Issue> getIssues() {
-        return Arrays.asList(LogUsageDetector.LogIssue, ParseColorDetector.ColorParseIssue, ToastDetector.ISSUE, LogDetector.CONDITIONAL, ThreadDetector.THREAD);
+        return Arrays.asList(LogUsageDetector.LogIssue,
+                ParseColorDetector.ColorParseIssue,
+                CamelNamingSpecsDetector.CNSIssue,
+                ToastDetector.ISSUE,
+                LogDetector.CONDITIONAL,
+                ThreadDetector.THREAD);
     }
 
     @Override

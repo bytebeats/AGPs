@@ -20,5 +20,13 @@ public class LintActivity extends AppCompatActivity {
         Toast.makeText(this, "Toast Lint", Toast.LENGTH_SHORT);
         Log.i("AAA", "onCreate");
         int color = Color.parseColor("#079");
+        new aClass().Hello("John");
+    }
+
+    private static final class aClass {
+        public boolean Hello(String name) {
+            System.out.println("hello, " + name);
+            return false;
+        }
     }
 }

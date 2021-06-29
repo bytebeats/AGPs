@@ -15,6 +15,7 @@ import java.util.List;
 import me.bytebeats.lint.core.detector.CamelNamingSpecsDetector;
 import me.bytebeats.lint.core.detector.ParseColorDetector;
 import me.bytebeats.lint.core.detector.LogUsageDetector;
+import me.bytebeats.lint.core.detector.TranslucentOrientatedActivityDetector;
 
 /**
  * Created by bytebeats on 2021/6/28 : 14:27
@@ -29,9 +30,10 @@ public class ProbeIssueRegistry extends IssueRegistry {
     @NotNull
     @Override
     public List<Issue> getIssues() {
-        return Arrays.asList(LogUsageDetector.LogIssue,
+        return Arrays.asList(LogUsageDetector.LogUsage,
                 ParseColorDetector.ColorParseIssue,
-                CamelNamingSpecsDetector.CNSIssue,
+                CamelNamingSpecsDetector.CNS,
+                TranslucentOrientatedActivityDetector.TranslucentOrientatedActivity,
                 ToastDetector.ISSUE,
                 LogDetector.CONDITIONAL,
                 ThreadDetector.THREAD);

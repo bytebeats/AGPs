@@ -31,11 +31,11 @@ public class LogUsageDetector extends Detector implements Detector.UastScanner {
     @Override
     public void visitMethodCall(@NotNull JavaContext context, @NotNull UCallExpression node, @NotNull PsiMethod method) {
         if (context.getEvaluator().isMemberInClass(method, ISSUE_CLASS_NAME)) {
-            context.report(LogIssue, node, context.getLocation(node), ISSUE_MESSAGE);
+            context.report(LogUsage, node, context.getLocation(node), ISSUE_MESSAGE);
         }
     }
 
-    public static final Issue LogIssue = Issue.create(ISSUE_ID,
+    public static final Issue LogUsage = Issue.create(ISSUE_ID,
             ISSUE_MESSAGE,
             ISSUE_EXPLANATION,
             Category.CORRECTNESS,

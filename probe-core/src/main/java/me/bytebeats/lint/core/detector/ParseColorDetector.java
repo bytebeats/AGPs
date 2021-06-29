@@ -51,7 +51,8 @@ public class ParseColorDetector extends Detector implements Detector.UastScanner
     }
 
     private boolean isLegalColorConstant(UCallExpression node) {
-        return node.getValueArguments().get(0).evaluate().toString().startsWith("#");
+        String value = node.getValueArguments().get(0).evaluate().toString();
+        return value.startsWith("#") && (value.length() == 4 || value.length() == 6);
     }
 
     private boolean isWorkingWithTryCatchBlock(JavaContext context, UCallExpression node) {

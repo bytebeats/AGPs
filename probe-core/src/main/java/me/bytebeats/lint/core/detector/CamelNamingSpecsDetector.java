@@ -22,9 +22,9 @@ import java.util.List;
 public class CamelNamingSpecsDetector extends Detector implements Detector.UastScanner {
     private static final String ISSUE_ID = "probe-camel-naming-specs";
     private static final String ISSUE_MESSAGE = "Java should follow camel naming specs";
-    private static final String ISSUE_EXPLANATION = "Java should follow camel naming specs. Class name should start with upper case, method name should start with low case, and then appending words with first Capital character";
-    private static final String ISSUE_CLASS_EXPLANATION = "Java should follow camel naming specs. Class %s should start with upper case, and then appending words with first Capital character";
-    private static final String ISSUE_METHOD_EXPLANATION = "Java should follow camel naming specs. Method %s should start with low case, and then appending words with first Capital character";
+    private static final String ISSUE_EXPLANATION = "Java should follow camel naming specs. Class name should start with upper case, method name should start with low case, and then appending words with first character in UPPERCASE";
+    private static final String ISSUE_CLASS_EXPLANATION = "Java should follow camel naming specs. Class %s should start with character in upper case, and then appending words with first character in UPPERCASE";
+    private static final String ISSUE_METHOD_EXPLANATION = "Java should follow camel naming specs. Method %s should start with character in low case, and then appending words with first character in UPPERCASE";
 
     @Nullable
     @Override
@@ -53,8 +53,8 @@ public class CamelNamingSpecsDetector extends Detector implements Detector.UastS
         @Override
         public boolean visitClass(@NotNull UClass node) {
             char className1stChar = node.getName().toCharArray()[0];
-            if (className1stChar < 'a' || className1stChar > 'z') {
-                context.report(CNSIssue, context.getNameLocation(node), String.format(ISSUE_CLASS_EXPLANATION, node.getName()));
+            if (className1stChar >= 'a' && className1stChar <= 'z') {
+                context.report(CNS, context.getNameLocation(node), String.format(ISSUE_CLASS_EXPLANATION, node.getName()));
                 return true;//true表示触碰 Issue
             }
             return super.visitClass(node);
@@ -65,7 +65,7 @@ public class CamelNamingSpecsDetector extends Detector implements Detector.UastS
             if (!node.isConstructor()) {
                 char methodName1stChar = node.getName().toCharArray()[0];
                 if (methodName1stChar >= 'A' && methodName1stChar <= 'Z') {
-                    context.report(CNSIssue, context.getLocation(node), String.format(ISSUE_METHOD_EXPLANATION, node.getName()));
+                    context.report(CNS, context.getNameLocation(node), String.format(ISSUE_METHOD_EXPLANATION, node.getName()));
                     return true;//true表示触碰 Issue
                 }
             }
@@ -73,7 +73,7 @@ public class CamelNamingSpecsDetector extends Detector implements Detector.UastS
         }
     }
 
-    public static final Issue CNSIssue = Issue.create(ISSUE_ID,
+    public static final Issue CNS = Issue.create(ISSUE_ID,
             ISSUE_MESSAGE,
             ISSUE_EXPLANATION,
             Category.USABILITY,

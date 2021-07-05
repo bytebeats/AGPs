@@ -26,6 +26,11 @@ class TaskTimeKeeper implements TaskExecutionListener, BuildListener {
     }
 
     @Override
+    void buildStarted(Gradle gradle) {
+
+    }
+
+    @Override
     void beforeExecute(Task task) {
         if (enabled) {
             clock = new HansClock()

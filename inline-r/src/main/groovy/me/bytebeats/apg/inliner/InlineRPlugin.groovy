@@ -13,7 +13,7 @@ class InlineRPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
         def android = project.extensions.getByType(AppExtension)
-        project.extensions.create(InlineRExtension.EXTENSION_NAME, InlineRExtension)
+        project.extensions.create(InlineRExtension.EXTENSION_NAME, InlineRExtension, project)
         android.registerTransform(new InlineRTransform(project))
     }
 }

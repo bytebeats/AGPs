@@ -11,4 +11,23 @@ class InlineRUtil {
     private InlineRUtil() {
 
     }
+
+    /**
+     * mappings e.g.: me/bytebeats/agp.R$mipmap.class#ic_launcher => 0x0000001
+     */
+    static final Map<String, Integer> mRInfoMap = new HashMap()
+
+    static void clear() {
+        mRInfoMap.clear()
+    }
+
+    static void readRMappings(File file) {
+        if (!isRClass(file.absolutePath)) {
+            return
+        }
+    }
+
+    static boolean isRClass(String classFilePath) {
+        return classFilePath ==~ '''.*/R\\$(?!styleable).*?\\.class|.*/R\\.class'''
+    }
 }

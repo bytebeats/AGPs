@@ -4,9 +4,9 @@ plugins {
 }
 
 ext {
-    CHRONUS_ARTIFACT_ID = 'chronus'
-    CHRONUS_VERSION = '1.0.0'
-    CHRONUS_POM_DESCRIPTION = 'Chronus: display every task-taking time'
+    INLINE_R_ARTIFACT_ID = 'inline-r'
+    INLINE_R_VERSION = '1.0.0'
+    INLINE_R_POM_DESCRIPTION = 'Inline-R: shrink R files and inline its fields in class files'
 }
 
 //apply from: 'mvnctl_publish_chronus.gradle'
@@ -25,6 +25,7 @@ dependencies {
     implementation gradleApi()
     implementation localGroovy()
 
+    implementation 'com.android.tools.build:transform-api:1.5.0'
     implementation 'com.android.tools.build:gradle:3.6.4'
 }
 
@@ -37,8 +38,8 @@ project.publishing {
         pluginPublication(MavenPublication) {
             from components.java
             groupId GROUP_ID
-            artifactId CHRONUS_ARTIFACT_ID
-            version CHRONUS_VERSION
+            artifactId INLINE_R_ARTIFACT_ID
+            version INLINE_R_VERSION
         }
     }
 }

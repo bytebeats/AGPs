@@ -3,6 +3,7 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="1.7">
       <module name="AGPs.app" target="11" />
+      <module name="AGPs.inlineR" target="11" />
       <module name="AGPs.probe" target="11" />
       <module name="AGPs.probe-aar" target="11" />
       <module name="AGPs.probe-library" target="11" />

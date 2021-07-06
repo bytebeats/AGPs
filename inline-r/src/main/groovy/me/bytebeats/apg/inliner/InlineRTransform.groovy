@@ -92,7 +92,7 @@ class InlineRTransform extends Transform {
 
         println "------start inlining R fields into classes------"
 
-        transformInvocation.inputs.each {input ->
+        transformInvocation.inputs.each { input ->
             input.directoryInputs.each { directoryInput ->
                 if (directoryInput.file.isDirectory()) {
                     directoryInput.file.eachFileRecurse { recursiveFile ->

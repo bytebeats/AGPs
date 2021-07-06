@@ -3,8 +3,13 @@ package me.bytebeats.apg.inliner
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.FieldVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+import java.util.zip.ZipEntry
 
 /**
  * Created by bytebeats on 2021/7/5 : 19:07
@@ -26,11 +31,127 @@ class InlineRUtil {
         mRInfoMap.clear()
     }
 
+    /**
+     * Read all R fields into Map
+     * e.g.: "me/bytebeats/agp/R$mipmapic_launcher" = 0x00001
+     * @param file
+     */
     static void readRMappings(File file) {
         if (!isRClass(file.absolutePath)) {
             return
         }
+        def fullClassName = getFullClassName(file.absolutePath)
+        new FileInputStream(file).withStream { is ->
+            def reader = new ClassReader(is)
+            def visitor = new ClassVisitor(Opcodes.ASM6) {
+                @Override
+                FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+                    if (value in Integer) {
+                        mRInfoMap[fullClassName - ".class" + name] = value
+                    }
+                    return super.visitField(access, name, descriptor, signature, value)
+                }
+            }
+            reader.accept(visitor, 0)
+        }
+    }
 
+    static void replaceAndDeleteRInfo(File classFile, InlineRExtension extension) {
+        def fullClassName = getFullClassName(classFile.absolutePath)
+        if (isRClassExcludedStyleable(classFile.absolutePath)) {
+            InlineRExtension.RKeepInfo rKeepInfo = extension.shouldKeepRFile(fullClassName)
+            if (rKeepInfo != null) {
+                println "R class has fields to keep: ${classFile.absolutePath}"
+                new FileInputStream(classFile).withStream { is ->
+                    def reader = new ClassReader(is)
+                    ClassWriter writer = new ClassWriter(0)
+                    def visitor = new ClassVisitor(Opcodes.ASM6, writer) {
+                        @Override
+                        FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+                            if (value instanceof Integer) {
+                                if (rKeepInfo.shouldKeep(name)) {
+                                    println "Fields ${name} is kept"
+                                    return super.visitField(access, name, descriptor, signature, value)
+                                }
+                                return null
+                            }
+                            return super.visitField(access, name, descriptor, signature, value)
+                        }
+                    }
+                    reader.accept(visitor, 0)
+                    byte[] bytes = writer.toByteArray()
+                    def newClassFile = new File(classFile.parentFile, "${classFile.name}.tmp")
+                    new FileOutputStream(newClassFile).withStream { os ->
+                        os.write(bytes)
+                    }
+                    classFile.delete()
+                    newClassFile.renameTo(classFile)
+                }
+            } else {
+                println "No fields to be replaced. delete this R class file: ${fullClassName}"
+                classFile.delete()
+            }
+        } else {
+            if (isRClass(classFile.absolutePath)) {
+                println "delete all static final int fields in ${fullClassName}"
+
+                new FileInputStream(classFile).withStream { is ->
+                    def reader = new ClassReader(is.bytes)
+                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES)
+                    def visitor = new ClassVisitor(Opcodes.ASM6, writer) {
+                        @Override
+                        FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+                            if (value instanceof Integer) {
+                                return null
+                            }
+                            return super.visitField(access, name, descriptor, signature, value)
+                        }
+                    }
+                    reader.accept(visitor, ClassReader.EXPAND_FRAMES)
+                    def bytes = writer.toByteArray()
+                    def newClassFile = new File(classFile.parentFile, "${classFile.name}.tmp")
+                    new FileOutputStream(newClassFile).withStream { os ->
+                        os.write(bytes)
+                    }
+                    classFile.delete()
+                    newClassFile.renameTo(classFile)
+                }
+            } else {
+                new FileInputStream(classFile).withStream { is ->
+                    def bytes = replaceRInfo(is.bytes)
+                    def newClassFile = new File(classFile.parentFile, "${classFile.name}.tmp")
+                    new FileOutputStream(newClassFile).withStream { os ->
+                        os.write(bytes)
+                    }
+                    classFile.delete()
+                    newClassFile.renameTo(classFile)
+                }
+            }
+        }
+    }
+
+    static void replaceAndDeleteRInfoFromJar(File jar, InlineRExtension extension) {
+        File newJar = new File(jar.parentFile, "${jar.name}.tmp")
+        JarFile jarFile = new JarFile(newJar)
+        new JarOutputStream(new FileOutputStream(jar)).withStream { jos ->
+            jarFile.entries().each { entry ->
+                jarFile.getInputStream(entry).withStream { jis ->
+                    def zipEntry = new ZipEntry(entry.name)
+                    def bytes = jis.bytes
+                    if (entry.name.endsWith(".class")) {
+                        bytes = replaceRInfo(bytes)
+                    }
+                    if (bytes != null) {
+                        jos.putNextEntry(zipEntry)
+                        jos.write(bytes)
+                        jos.closeEntry()
+                    }
+                }
+            }
+        }
+        jarFile.close()
+        jar.delete()
+        newJar.renameTo(jar)
     }
 
     private static byte[] replaceRInfo(byte[] bytes) {

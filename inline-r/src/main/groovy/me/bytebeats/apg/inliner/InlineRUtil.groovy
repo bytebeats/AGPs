@@ -46,7 +46,7 @@ class InlineRUtil {
             def visitor = new ClassVisitor(Opcodes.ASM6) {
                 @Override
                 FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-                    if (value in Integer) {
+                    if (value instanceof Integer) {
                         mRInfoMap[fullClassName - ".class" + name] = value
                     }
                     return super.visitField(access, name, descriptor, signature, value)
@@ -56,7 +56,7 @@ class InlineRUtil {
         }
     }
 
-    static void replaceAndDeleteRInfo(File classFile, InlineRExtension extension) {
+    static void replaceAndDeleteRInfoFromFile(File classFile, InlineRExtension extension) {
         def fullClassName = getFullClassName(classFile.absolutePath)
         if (isRClassExcludedStyleable(classFile.absolutePath)) {
             InlineRExtension.RKeepInfo rKeepInfo = extension.shouldKeepRFile(fullClassName)
@@ -225,13 +225,5 @@ class InlineRUtil {
      */
     static boolean isRClassExcludedStyleable(String classFilePath) {
         return classFilePath ==~ '''.*/R\\$(?!styleable).*?\\.class|.*/R\\.class'''
-    }
-
-    static void replaceAndDeleteRInfoFromFile(File file, InlineRExtension extension) {
-
-    }
-
-    static void replaceAndDeleteRInfoFromJar(String jarFile, InlineRExtension extension) {
-
     }
 }

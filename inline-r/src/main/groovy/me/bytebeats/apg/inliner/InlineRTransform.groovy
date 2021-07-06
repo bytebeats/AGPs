@@ -90,18 +90,18 @@ class InlineRTransform extends Transform {
         }
         println "------R class information is read------"
 
-        println "------replace all places where R.class is referred------"
+        println "------start inlining R fields into classes------"
 
         transformInvocation.inputs.each {input ->
             input.directoryInputs.each { directoryInput ->
                 if (directoryInput.file.isDirectory()) {
                     directoryInput.file.eachFileRecurse { recursiveFile ->
                         if (recursiveFile.isFile()) {
-
+                            InlineRUtil.replaceAndDeleteRInfoFromFile(recursiveFile, mExtension)
                         }
                     }
                 } else {
-
+                    InlineRUtil.replaceAndDeleteRInfoFromFile(directoryInput.file, mExtension)
                 }
 
                 def dest = transformInvocation.outputProvider.getContentLocation(directoryInput.name, directoryInput.contentTypes, directoryInput.scopes, Format.DIRECTORY)
@@ -110,8 +110,10 @@ class InlineRTransform extends Transform {
         }
 
         for (File jar : jarList) {
-
+            InlineRUtil.replaceAndDeleteRInfoFromJar(jar, mExtension)
         }
+
+        println "------inlining R fields finished------"
 
         println "------${TAG} ends-----"
         println "----------------------------------"

@@ -22,12 +22,12 @@ apply from: '../local.gradle'
 
 project.publishing {
     publications {
-        chronusPublication(MavenPublication) {
+        inlinerPublication(MavenPublication) {
             // The coordinates of the library, being set from variables that
             // we'll set up in a moment
             groupId GROUP_ID
-            artifactId CHRONUS_ARTIFACT_ID
-            version CHRONUS_VERSION
+            artifactId INLINE_R_ARTIFACT_ID
+            version INLINE_R_VERSION
 
             from components.java
 
@@ -37,8 +37,8 @@ project.publishing {
 
             // Self-explanatory metadata for the most part
             pom {
-                name = CHRONUS_ARTIFACT_ID
-                description = CHRONUS_POM_DESCRIPTION
+                name = INLINE_R_ARTIFACT_ID
+                description = INLINE_R_POM_DESCRIPTION
                 // If your project has a dedicated site, use its URL here
                 url = POM_URL
                 licenses {
@@ -83,7 +83,7 @@ project.publishing {
         maven {
             // This is an arbitrary name, you may also use "mavencentral" or
             // any other name that's descriptive for you
-            name = "agp-chronus"
+            name = "agp-inline-r"
 
             // You only need this if you want to publish snapshots, otherwise just set the URL
             // to the release repo directly

@@ -13,9 +13,8 @@ java {
 }
 
 dependencies {
-    def lintVersion = lintVersionFromAGP()
-    compileOnly("$LINT_GROUP:lint-api:$lintVersion")
-    compileOnly("$LINT_GROUP:lint-checks:$lintVersion")
+    compileOnly("$LINT_GROUP:lint-api:$LINT_VERSION")
+    compileOnly("$LINT_GROUP:lint-checks:$LINT_VERSION")
 }
 
 jar {

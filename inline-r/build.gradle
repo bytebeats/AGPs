@@ -6,10 +6,10 @@ plugins {
 ext {
     INLINE_R_ARTIFACT_ID = 'inline-r'
     INLINE_R_VERSION = '1.0.0'
-    INLINE_R_POM_DESCRIPTION = 'Inline-R: shrink R files and inline its fields in class files'
+    INLINE_R_POM_DESCRIPTION = 'Inline-R: shrink R files and inline its fields into class files'
 }
 
-//apply from: 'mvnctl_publish_chronus.gradle'
+//apply from: 'mvnctl_publish_inline_r.gradle'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_7

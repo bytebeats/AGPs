@@ -1,14 +1,8 @@
 package me.bytebeats.agp.inliner
 
-import com.android.build.api.transform.Format
-import com.android.build.api.transform.QualifiedContent
-import com.android.build.api.transform.Transform
-import com.android.build.api.transform.TransformInvocation
+import com.android.build.api.transform.*
 import com.android.build.gradle.internal.pipeline.TransformManager
-import com.android.utils.FileUtils
-import org.apache.commons.codec.digest.DigestUtils
 import org.gradle.api.Project
-import java.io.File
 
 /**
  * Created by bytebeats on 2021/7/12 : 17:15
@@ -33,80 +27,62 @@ class InlineRTransform(
     override fun transform(transformInvocation: TransformInvocation?) {
         println("----------------------------------")
         println("------${TAG} starts-----")
-        transformInvocation?.outputProvider?.deleteAll()
+        val outputProvider =
+            transformInvocation?.outputProvider ?: return super.transform(transformInvocation)
+        val startTime = System.currentTimeMillis()
+        outputProvider.deleteAll()
         InlineRUtil.clear()
-        val jarList = mutableListOf<File>()
+        val libJarList = mutableListOf<JarInput>()
+        val rJarList = mutableListOf<JarInput>()
 
-        println("------reading R class information------")
-        transformInvocation?.inputs?.forEach { input ->
+        println("------collecting R fields------")
+        transformInvocation.inputs?.forEach { input ->
+            input.jarInputs.forEach { jarInput ->
+                if (jarInput.file.absolutePath.endsWith(".jar")) {
+                    if (jarInput.file.path.contains("compile_and_runtime_not_namespaced_r_class_jar")) {
+                        rJarList.add(jarInput)
+                    } else {
+                        libJarList.add(jarInput)
+                    }
+                }
+            }
+        }
+        for (rJarFile in rJarList) {
+            val dest = rJarFile.getDestAfterOutput(outputProvider)
+            InlineRUtil.collectAndDeleteRFieldsFromJar(dest, mExtension)
+        }
+        println("------R fields are collected------")
+
+        val totalRFieldCount = InlineRUtil.mFieldCount
+        val collectedRFieldCount = InlineRUtil.getRInfoMappingSize()
+        val keepSize = totalRFieldCount - collectedRFieldCount
+        println("R jar file count = ${rJarList.size}, all r fields count = $totalRFieldCount where $collectedRFieldCount is deleted and $keepSize is kept")
+
+        for (libJarFile in libJarList) {
+            val dest = libJarFile.getDestAfterOutput(outputProvider)
+            InlineRUtil.replaceJarFileRInfo(dest)
+        }
+
+        println("------start inlining R fields into classes------")
+
+        transformInvocation.inputs?.forEach { input ->
             input.directoryInputs.forEach { directoryInput ->
                 if (directoryInput.file.isDirectory) {
-                    directoryInput.file.walk().forEach { recurseFile ->
-                        if (recurseFile.isFile) {
-                            println("directory file reading 1")
-                            InlineRUtil.readRMappings(recurseFile)
+                    directoryInput.file.walk().forEach { recursiveFile ->
+                        if (recursiveFile.isFile) {
+                            InlineRUtil.replaceDirectoryFileRInfo(recursiveFile)
                         }
                     }
-                } else {
-                    println("directory file reading 2")
-                    InlineRUtil.readRMappings(directoryInput.file)
                 }
-            }
-            input.jarInputs.forEach { jarInput ->
-                var jarName = jarInput.name
-                val md5 = DigestUtils.md2Hex(jarInput.file.absolutePath)
-                if (jarName.endsWith(".jar")) {
-                    jarName = jarName.substring(0, jarName.length - 4)
-                }
-                val dest = transformInvocation.outputProvider.getContentLocation(
-                    "${jarName}${md5}",
-                    jarInput.contentTypes,
-                    jarInput.scopes,
-                    Format.JAR
-                )
-                val src = jarInput.file
-                FileUtils.copyFile(src, dest)
-                if (src.absolutePath.endsWith(".jar")) {
-                    println("jar: ${src.absolutePath}")
-                    jarList.add(dest)
-                }
+
+                directoryInput.getDestAfterOutput(outputProvider)
             }
         }
-        println("------R class information is read------")
-        if (!InlineRUtil.isRInfoEmpty()) {
-
-            println("------start inlining R fields into classes------")
-
-            transformInvocation?.inputs?.forEach { input ->
-                input.directoryInputs.forEach { directoryInput ->
-                    if (directoryInput.file.isDirectory) {
-                        directoryInput.file.walk().forEach { recursiveFile ->
-                            if (recursiveFile.isFile) {
-                                InlineRUtil.replaceAndDeleteRInfoFromFile(recursiveFile, mExtension)
-                            }
-                        }
-                    } else {
-                        InlineRUtil.replaceAndDeleteRInfoFromFile(directoryInput.file, mExtension)
-                    }
-
-                    val dest = transformInvocation.outputProvider.getContentLocation(
-                        directoryInput.name,
-                        directoryInput.contentTypes,
-                        directoryInput.scopes,
-                        Format.DIRECTORY
-                    )
-                    FileUtils.copyFile(directoryInput.file, dest)
-                }
-            }
-            jarList.forEachIndexed { index, file ->
-                if (index < 2) {
-                    InlineRUtil.replaceAndDeleteRInfoFromJar(file)
-                }
-            }
-
-            println("------inlining R fields finished------")
-        }
-
+        println("------inlining R fields finished------")
+        rJarList.clear()
+        libJarList.clear()
+        val cost = (System.currentTimeMillis() - startTime) / 1000L
+        println("------${TAG} cost $cost s-----")
         println("------${TAG} ends-----")
         println("----------------------------------")
     }

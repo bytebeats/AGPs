@@ -19,8 +19,8 @@ public class LintActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.string.previous);
-        Toast.makeText(this, "Toast Lint", Toast.LENGTH_SHORT);
+        setContentView(R.layout.activity_base_main);
+        Toast.makeText(this, R.string.previous, Toast.LENGTH_SHORT);
         Log.i("AAA", "onCreate");
         int color = Color.parseColor("#09");
         new aClass().Hello("John");

@@ -2,7 +2,6 @@ package me.bytebeats.agp.inliner
 
 import org.objectweb.asm.*
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
@@ -19,61 +18,44 @@ object InlineRUtil {
      * mappings e.g.: me/bytebeats/agp.R$mipmap.class#ic_launcher => 0x0000001
      */
     private val mRInfoMap = mutableMapOf<String, Int>()
+    var mFieldCount = 0
+        private set
 
 
     fun clear() {
         mRInfoMap.clear()
+        mFieldCount = 0
     }
 
-    fun isRInfoEmpty(): Boolean {
-        println("is r info empty: ${mRInfoMap.isEmpty()}")
-        mRInfoMap.forEach { t, u -> println("$t -> $u") }
-        return mRInfoMap.isEmpty()
-    }
+    fun getRInfoMappingSize(): Int = mRInfoMap.size
 
     /**
-     * Read all R fields into Map
+     * Read all R fields into Map and delete from jar r class
      * e.g.: "me/bytebeats/agp/R$mipmapic_launcher" = 0x00001
-     * @param file
+     * @param jFile
      */
-    fun readRMappings(file: File) {
-        if (!isRClass(file.absolutePath)) {
-            println("not R class: ${file.absolutePath}")
-            return
-        }
-        val fullClassName = getFullClassName(file.absolutePath)
-        println("reading R class: $fullClassName")
-        FileInputStream(file).use { fis ->
-            val reader = ClassReader(fis.readBytes())
-            val visitor = object : ClassVisitor(Opcodes.ASM6) {
-                override fun visitField(
-                    access: Int,
-                    name: String?,
-                    descriptor: String?,
-                    signature: String?,
-                    value: Any?
-                ): FieldVisitor {
-                    if (value is Int) {
-                        val key = "${fullClassName.replace(".class", "")}$name"
-                        println("R info: $key -> $value")
-                        mRInfoMap[key] = value
-                    }
-                    return super.visitField(access, name, descriptor, signature, value)
-                }
-            }
-            reader.accept(visitor, ClassReader.EXPAND_FRAMES)
-        }
-    }
-
-    fun replaceAndDeleteRInfoFromFile(classFile: File, extension: InlineRExtension) {
-        val fullClassName = getFullClassName(classFile.absolutePath)
-        if (isRClassExcludedStyleable(classFile.absolutePath)) {//except R$Styleable.class
-            val rKeepInfo = extension.shouldKeepRFile(fullClassName)
-            if (rKeepInfo != null) {
-                println("R class has fields to keep: ${classFile.absolutePath}")
-                FileInputStream(classFile).use { fis ->
-                    val reader = ClassReader(fis)
-                    val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
+    fun collectAndDeleteRFieldsFromJar(jFile: File, extension: InlineRExtension) {
+        println("collectAndDeleteRFieldsFromJar: ${jFile.path}")
+        val tgtJar = File(jFile.parentFile, "${jFile.name}.inliner.tmp")
+        tgtJar.createNewFile()
+        JarOutputStream(FileOutputStream(tgtJar)).use { jos ->
+            val jarFile = JarFile(jFile)
+            jarFile.entries().iterator().forEachRemaining { jarEntry ->
+                val entryName = jarEntry.name
+                if (!isRClass(entryName)) {
+                    println("not R class jar: $entryName")
+                } else {
+                    val lastSlashIdx = entryName.lastIndexOf('/')
+                    val pkg = entryName.substring(0, lastSlashIdx)
+                    val keepRInfo = extension.shouldKeepRPackage(pkg)
+//                    println("keepRInfo: ${keepRInfo.toString()}")
+                    val shortName = entryName.substring(lastSlashIdx + 1)//R.class or R$id.class
+                    val isStyleable = shortName.contains("styleable")
+                    val rInnerClassShortName = shortName.replace("R\$", "").replace(".class", "")
+                    var toBeKept = false
+                    var bytes = jarFile.getInputStream(jarEntry).readBytes()
+                    val reader = ClassReader(bytes)
+                    val writer = ClassWriter(ClassWriter.COMPUTE_FRAMES)
                     val visitor = object : ClassVisitor(Opcodes.ASM6, writer) {
                         override fun visitField(
                             access: Int,
@@ -83,99 +65,76 @@ object InlineRUtil {
                             value: Any?
                         ): FieldVisitor? {
                             if (value is Int) {
-                                if (rKeepInfo.shouldKeep(name!!)) {
-                                    println("Fields $name is kept")
-                                    return super.visitField(
-                                        access,
-                                        name,
-                                        descriptor,
-                                        signature,
-                                        value
-                                    )
+                                val key = "${entryName.replace(".class", "")}#$name"
+                                mFieldCount++
+                                if (keepRInfo?.find { it.name == rInnerClassShortName }
+                                        ?.shouldKeep(name) == true) {
+                                    toBeKept = true
+                                    println("kept $key = $value")
+                                } else {
+                                    toBeKept = false
+                                    mRInfoMap[key] = value
+//                                    println("removed $key = $value")
+                                    return null
                                 }
-                                return null
                             }
                             return super.visitField(access, name, descriptor, signature, value)
                         }
                     }
                     reader.accept(visitor, ClassReader.EXPAND_FRAMES)
-                    val bytes = writer.toByteArray()
-                    val newClassFile = File(classFile.parentFile, "${classFile.name}.tmp")
-                    FileOutputStream(newClassFile).use { os ->
-                        os.write(bytes)
+                    bytes = writer.toByteArray()
+                    if (bytes.isNotEmpty() && (toBeKept || isStyleable)) {
+                        val zipEntry = ZipEntry(entryName)
+                        jos.putNextEntry(zipEntry)
+                        jos.write(bytes)
+                        jos.closeEntry()
                     }
-                    classFile.delete()
-                    newClassFile.renameTo(classFile)
                 }
-            } else {
-                println("No fields to be replaced. delete this R class file: $fullClassName")
-                classFile.delete()
-            }
-        } else if (isRClass(classFile.absolutePath)) {//R$Styleable.class
-            println("delete all static final int fields in $fullClassName")
 
-            FileInputStream(classFile).use { fis ->
-                val reader = ClassReader(fis.readBytes())
-                val writer = ClassWriter(ClassWriter.COMPUTE_FRAMES)
-                val visitor = object : ClassVisitor(Opcodes.ASM6, writer) {
-                    override fun visitField(
-                        access: Int,
-                        name: String?,
-                        descriptor: String?,
-                        signature: String?,
-                        value: Any?
-                    ): FieldVisitor? {
-                        if (value is Int) {
-                            return null
-                        }
-                        return super.visitField(access, name, descriptor, signature, value)
-                    }
-                }
-                reader.accept(visitor, ClassReader.EXPAND_FRAMES)
-                val bytes = writer.toByteArray()
-                val newClassFile = File(classFile.parentFile, "${classFile.name}.tmp")
-                FileOutputStream(newClassFile).use { os ->
-                    os.write(bytes)
-                }
-                classFile.delete()
-                newClassFile.renameTo(classFile)
             }
-        } else {
-            FileInputStream(classFile).use { fis ->
-                val bytes =
-                    if (isClassFile(classFile.absolutePath)) replaceRInfo(fis.readBytes()) else fis.readBytes()
-                val newClassFile = File(classFile.parentFile, "${classFile.name}.tmp")
-                FileOutputStream(newClassFile).use { os ->
-                    os.write(bytes)
-                }
-                classFile.delete()
-                newClassFile.renameTo(classFile)
-            }
+            jarFile.close()
+            jFile.delete()
+            jos.close()
+            tgtJar.renameTo(jFile)
         }
     }
 
-    fun replaceAndDeleteRInfoFromJar(srcjar: File) {
-        println("replaceAndDeleteRInfoFromJar")
-        val newJar = File(srcjar.parentFile, "${srcjar.name}.tmp")
-        val jarFile = JarFile(srcjar)
-        JarOutputStream(FileOutputStream(newJar)).use { jos ->
-            jarFile.entries().asSequence().forEach { entry ->
-                jarFile.getInputStream(entry).use { jis ->
+    fun replaceJarFileRInfo(srcJar: File) {
+        val tgtJar = File(srcJar.parentFile, "${srcJar.name}.inliner.tmp")
+        val srcJarFile = JarFile(srcJar)
+        JarOutputStream(FileOutputStream(tgtJar)).use { jos ->
+            srcJarFile.entries().asSequence().forEach { entry ->
+                srcJarFile.getInputStream(entry).use { jis ->
                     val zipEntry = ZipEntry(entry.name)
                     var bytes = jis.readBytes()
                     if (isClassFile(entry.name) && !isRClass(entry.name)) {
-                        println("replace R info: ${entry.name}")
                         bytes = replaceRInfo(bytes)
                     }
-                    jos.putNextEntry(zipEntry)
-                    jos.write(bytes)
-                    jos.closeEntry()
+                    if (bytes.isNotEmpty()) {
+                        jos.putNextEntry(zipEntry)
+                        jos.write(bytes)
+                        jos.closeEntry()
+                    }
                 }
             }
         }
-        jarFile.close()
-        srcjar.delete()
-        newJar.renameTo(srcjar)
+        srcJarFile.close()
+        srcJar.delete()
+        tgtJar.renameTo(srcJar)
+    }
+
+    fun replaceDirectoryFileRInfo(dFile: File) {
+        if (isClassFile(dFile.path) && !isRClass(dFile.path)) {
+            val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
+            FileOutputStream(tgtFile).use { fos ->
+                var bytes = dFile.readBytes()
+                bytes = replaceRInfo(bytes)
+                fos.write(bytes)
+                fos.close()
+                dFile.delete()
+                tgtFile.renameTo(dFile)
+            }
+        }
     }
 
     private fun replaceRInfo(bytes: ByteArray): ByteArray {
@@ -192,19 +151,17 @@ object InlineRUtil {
                 var methodVisitor =
                     super.visitMethod(access, name, descriptor, signature, exceptions)
                 methodVisitor = object : MethodVisitor(Opcodes.ASM6, methodVisitor) {
-                    override fun visitMethodInsn(
+                    override fun visitFieldInsn(
                         opcode: Int,
                         owner: String?,
                         name1: String?,
-                        descriptor1: String?,
-                        isInterface: Boolean
+                        descriptor1: String?
                     ) {
-                        val key = owner + name1
+                        val key = "$owner#$name1"
                         val value = mRInfoMap[key]
                         if (value == null) {
                             super.visitFieldInsn(opcode, owner, name1, descriptor1)
                         } else {
-                            println("Replaced direct reference to R.class: ${owner}-${name1}")
                             super.visitLdcInsn(value)
                         }
                     }
@@ -213,8 +170,7 @@ object InlineRUtil {
             }
         }
         reader.accept(visitor, ClassReader.EXPAND_FRAMES)
-        val result = writer.toByteArray()
-        return result
+        return writer.toByteArray()
     }
 
     /**
@@ -255,7 +211,7 @@ object InlineRUtil {
      * @return true if this class is R.class or its inner class like R$id.class
      */
     private fun isRClass(classFilePath: String): Boolean {
-        return classFilePath.matches(Regex(".*/R\\\$.*\\.class|.*/R\\.class"))
+        return classFilePath.matches(Regex(".*/R\\$.*\\.class|.*/R\\.class"))
     }
 
     /**
@@ -265,7 +221,7 @@ object InlineRUtil {
      * @return
      */
     private fun isRClassExcludedStyleable(classFilePath: String): Boolean {
-        return classFilePath.matches(Regex(".*/R\\\$(?!styleable).*?\\.class|.*/R\\.class"))
+        return classFilePath.matches(Regex(".*/R\\$(?!styleable).*?\\.class|.*/R\\.class"))
     }
 
     private fun isClassFile(classFilePath: String): Boolean {

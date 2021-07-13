@@ -8,6 +8,8 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import me.bytebeats.agp.base.R;
+
 /**
  * Created by bytebeats on 2021/6/28 : 19:55
  * E-mail: happychinapc@gmail.com
@@ -17,6 +19,7 @@ public class LintActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.string.previous);
         Toast.makeText(this, "Toast Lint", Toast.LENGTH_SHORT);
         Log.i("AAA", "onCreate");
         int color = Color.parseColor("#09");

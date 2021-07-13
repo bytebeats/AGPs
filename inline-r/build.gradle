@@ -1,4 +1,6 @@
 plugins {
+    id 'java-library'
+    id 'kotlin'
     id 'groovy'
     id 'maven-publish'
 }
@@ -9,12 +11,11 @@ ext {
     INLINE_R_POM_DESCRIPTION = 'Inline-R: shrink R files and inline its fields into class files'
 }
 
-//apply from: 'mvnctl_publish_inline_r.gradle'
-
 java {
     sourceCompatibility = JavaVersion.VERSION_1_7
     targetCompatibility = JavaVersion.VERSION_1_7
 }
+
 
 repositories {
     mavenLocal()

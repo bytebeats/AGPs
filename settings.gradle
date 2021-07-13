@@ -1,6 +1,7 @@
 include ':app'
 rootProject.name = "AGPs"
-include 'chronus'
+include ':chronus'
 include ':probe-core'
 include ':probe-aar'
 include ':inline-r'
+include ':base'

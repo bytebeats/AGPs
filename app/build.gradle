@@ -1,8 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'chronus'
-//    id 'inline-r'
+//    id 'chronus'
+    id 'inline-r'
 }
 
 android {
@@ -55,5 +55,6 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui-ktx:2.3.5'
 
 //    compileOnly(project(path: ':probe-aar'))
+    implementation(project(path: ':base'))
 
 }

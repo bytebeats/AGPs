@@ -14,7 +14,7 @@ open class InlineRExtension(private val project: Project) {
     private val mRKeepInfo = project.container(RKeepInfo::class.java)
     private var groupRKeepInfos = mutableMapOf<String, List<RKeepInfo>>()
 
-    fun keepInfo(action: Action<NamedDomainObjectContainer<RKeepInfo>>) {
+    fun keepInfo(action: Action<NamedDomainObjectContainer<RKeepInfo>>) {//called by framework
         action.execute(mRKeepInfo)
         mRKeepInfo.groupBy { it.keepPackageName.orEmpty() }.toMap(groupRKeepInfos)
         println(mRKeepInfo)

@@ -1,6 +1,6 @@
 plugins {
     id 'groovy'
-    id 'maven-publish'
+//    id 'maven-publish'
 }
 
 ext {
@@ -9,7 +9,7 @@ ext {
     CHRONUS_POM_DESCRIPTION = 'Chronus: display every task-taking time'
 }
 
-//apply from: 'mvnctl_publish_chronus.gradle'
+apply from: 'mvnctl_publish_chronus.gradle'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_7
@@ -32,13 +32,13 @@ dependencies {
  * publish agp to local repository through maven-publish plugin
  * run `./gradlew publishToMavenLocal` in Terminal to do the publishing
  */
-project.publishing {
-    publications {
-        pluginPublication(MavenPublication) {
-            from components.java
-            groupId GROUP_ID
-            artifactId CHRONUS_ARTIFACT_ID
-            version CHRONUS_VERSION
-        }
-    }
-}
+//project.publishing {
+//    publications {
+//        pluginPublication(MavenPublication) {
+//            from components.java
+//            groupId GROUP_ID
+//            artifactId CHRONUS_ARTIFACT_ID
+//            version CHRONUS_VERSION
+//        }
+//    }
+//}

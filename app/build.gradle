@@ -51,12 +51,13 @@ inlineRConfig {
             keepResNameRegex = ['accessibility_.*']
         }
 
-//        layout {
-//            keepPackageName = 'me.bytebeats.agp.base'
-//            keepResName = ['activity_base_main']
-//        }
+        layout {
+            keepPackageName = 'me.bytebeats.agp.base'
+            keepResName = ['activity_base_main']
+        }
         string {
-            keepResName = ['app_name']
+            keepPackageName = 'me.bytebeats.agps'
+            keepResName = ['title_notifications']
         }
     }
 }

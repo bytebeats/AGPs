@@ -58,22 +58,28 @@ class InlineRTransform(
         val keepSize = totalRFieldCount - collectedRFieldCount
         println("R jar file count = ${rJarList.size}, all r fields count = $totalRFieldCount where $collectedRFieldCount is deleted and $keepSize is kept")
 
+        println("------start inlining R fields into classes------")
+        println("------start inlining Jar files------")
+
         for (libJarFile in libJarList) {
             val dest = libJarFile.getDestAfterOutput(outputProvider)
             InlineRUtil.replaceJarFileRInfo(dest)
         }
 
-        println("------start inlining R fields into classes------")
+        println("------start inlining Directory files------")
 
         transformInvocation.inputs?.forEach { input ->
             input.directoryInputs.forEach { directoryInput ->
                 if (directoryInput.file.isDirectory) {
                     directoryInput.file.walk().forEach { recursiveFile ->
                         if (recursiveFile.isFile) {
+//                            println("file: ${recursiveFile.relativeTo(directoryInput.file)}")
                             InlineRUtil.replaceDirectoryFileRInfo(recursiveFile)
                         }
                     }
                 }
+
+//                InlineRUtil.replaceDirectoryFileRInfo2(directoryInput.file)
 
                 directoryInput.getDestAfterOutput(outputProvider)
             }

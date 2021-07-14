@@ -70,7 +70,7 @@ object InlineRUtil {
                                 if (keepRInfo?.find { it.name == rInnerClassShortName }
                                         ?.shouldKeep(name) == true) {
                                     toBeKept = true
-                                    println("kept $key = $value")
+//                                    println("kept $key = $value")
                                 } else {
                                     toBeKept = false
                                     mRInfoMap[key] = value
@@ -108,7 +108,7 @@ object InlineRUtil {
                     val zipEntry = ZipEntry(entry.name)
                     var bytes = jis.readBytes()
                     if (isClassFile(entry.name) && !isRClass(entry.name)) {
-                        bytes = replaceRInfo(bytes)
+                        bytes = replaceRInfo(bytes, false)
                     }
                     if (bytes.isNotEmpty()) {
                         jos.putNextEntry(zipEntry)
@@ -123,12 +123,46 @@ object InlineRUtil {
         tgtJar.renameTo(srcJar)
     }
 
+    fun replaceDirectoryFileRInfo2(dFile: File) {
+        isClassFile(dFile.absolutePath)
+        if (dFile.isDirectory) {//&& !isRClass(dFile.absolutePath)
+            dFile.walk().forEach { file ->
+                if (file.name.endsWith(".class")) {
+                    val tgtFile = File(file.parentFile, "${file.name}.inliner.tmp")
+                    FileOutputStream(tgtFile).use { fos ->
+                        var bytes = file.readBytes()
+//                        println("replacing: size1: = ${bytes.size}, ${file.path}")
+                        bytes = replaceRInfo(bytes, false)
+//                        println("replacing: size2: = ${bytes.size}")
+                        fos.write(bytes)
+                        fos.close()
+                        file.delete()
+                        tgtFile.renameTo(file)
+                    }
+                }
+            }
+//            val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
+//            FileOutputStream(tgtFile).use { fos ->
+//                var bytes = dFile.readBytes()
+//                println("replacing: size1: = ${bytes.size}, ${dFile.path}")
+//                bytes = replaceRInfo(bytes, false)
+//                println("replacing: size2: = ${bytes.size}")
+//                fos.write(bytes)
+//                fos.close()
+//                dFile.delete()
+//                tgtFile.renameTo(dFile)
+//            }
+        }
+    }
+
     fun replaceDirectoryFileRInfo(dFile: File) {
-        if (isClassFile(dFile.path) && !isRClass(dFile.path)) {
+        if (isClassFile(dFile.absolutePath)) {//&& !isRClass(dFile.absolutePath)
             val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
             FileOutputStream(tgtFile).use { fos ->
                 var bytes = dFile.readBytes()
-                bytes = replaceRInfo(bytes)
+//                println("replacing: size1: = ${bytes.size}, ${dFile.path}")
+                bytes = replaceRInfo(bytes, false)
+//                println("replacing: size2: = ${bytes.size}")
                 fos.write(bytes)
                 fos.close()
                 dFile.delete()
@@ -137,9 +171,9 @@ object InlineRUtil {
         }
     }
 
-    private fun replaceRInfo(bytes: ByteArray): ByteArray {
+    private fun replaceRInfo(bytes: ByteArray, debug: Boolean = false): ByteArray {
         val reader = ClassReader(bytes)
-        val writer = ClassWriter(ClassWriter.COMPUTE_MAXS)
+        val writer = ClassWriter(0)
         val visitor = object : ClassVisitor(Opcodes.ASM6, writer) {
             override fun visitMethod(
                 access: Int,
@@ -147,7 +181,7 @@ object InlineRUtil {
                 descriptor: String?,
                 signature: String?,
                 exceptions: Array<out String>?
-            ): MethodVisitor {
+            ): MethodVisitor? {
                 var methodVisitor =
                     super.visitMethod(access, name, descriptor, signature, exceptions)
                 methodVisitor = object : MethodVisitor(Opcodes.ASM6, methodVisitor) {
@@ -160,8 +194,14 @@ object InlineRUtil {
                         val key = "$owner#$name1"
                         val value = mRInfoMap[key]
                         if (value == null) {
+                            if (debug) {
+                                println("skipped: $key")
+                            }
                             super.visitFieldInsn(opcode, owner, name1, descriptor1)
                         } else {
+                            if (debug) {
+                                println("replaced: $key")
+                            }
                             super.visitLdcInsn(value)
                         }
                     }
@@ -169,7 +209,7 @@ object InlineRUtil {
                 return methodVisitor
             }
         }
-        reader.accept(visitor, ClassReader.EXPAND_FRAMES)
+        reader.accept(visitor, 0)
         return writer.toByteArray()
     }
 

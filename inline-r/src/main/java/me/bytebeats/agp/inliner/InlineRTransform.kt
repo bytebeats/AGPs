@@ -53,10 +53,10 @@ class InlineRTransform(
         }
         println("------R fields are collected------")
 
-        val totalRFieldCount = InlineRUtil.mFieldCount
+        val totalRFieldCount = InlineRUtil.mRFieldCount
         val collectedRFieldCount = InlineRUtil.getRInfoMappingSize()
         val keepSize = totalRFieldCount - collectedRFieldCount
-        println("R jar file count = ${rJarList.size}, all r fields count = $totalRFieldCount where $collectedRFieldCount is deleted and $keepSize is kept")
+        println("R jar files = ${rJarList.size}, all r fields = $totalRFieldCount where $collectedRFieldCount is deleted and $keepSize is kept")
 
         println("------start inlining R fields into classes------")
         println("------start inlining Jar files------")
@@ -70,23 +70,28 @@ class InlineRTransform(
 
         transformInvocation.inputs?.forEach { input ->
             input.directoryInputs.forEach { directoryInput ->
-                if (directoryInput.file.isDirectory) {
-                    directoryInput.file.walk().forEach { recursiveFile ->
-                        if (recursiveFile.isFile) {
-//                            println("file: ${recursiveFile.relativeTo(directoryInput.file)}")
-                            InlineRUtil.replaceDirectoryFileRInfo(recursiveFile)
-                        }
-                    }
-                }
+//                if (directoryInput.file.isDirectory) {
+//                    directoryInput.file.walk().forEach { recursiveFile ->
+//                        if (recursiveFile.isFile) {
+//                            InlineRUtil.replaceDirectoryFileRInfo3(recursiveFile)
+//                        }
+//                    }
+//                } else {
+//                    InlineRUtil.replaceDirectoryFileRInfo3(directoryInput.file)
+//                }
 
-//                InlineRUtil.replaceDirectoryFileRInfo2(directoryInput.file)
+                InlineRUtil.replaceDirectoryFileRInfo2(directoryInput.file)
 
                 directoryInput.getDestAfterOutput(outputProvider)
             }
         }
         println("------inlining R fields finished------")
+        println("------Reduced R files size = ${InlineRUtil.formatFileSize(InlineRUtil.mReducedRSize)}------")
+        println("------Reduced Jar files size = ${InlineRUtil.formatFileSize(InlineRUtil.mReducedJarSize)}------")
+        println("------Reduced Directory files size = ${InlineRUtil.formatFileSize(InlineRUtil.mReducedDirectorySize)}------")
         rJarList.clear()
         libJarList.clear()
+        InlineRUtil.clear()
         val cost = (System.currentTimeMillis() - startTime) / 1000L
         println("------${TAG} cost $cost s-----")
         println("------${TAG} ends-----")

@@ -2,7 +2,9 @@ package me.bytebeats.agp.inliner
 
 import org.objectweb.asm.*
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.lang.StringBuilder
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
@@ -18,13 +20,22 @@ object InlineRUtil {
      * mappings e.g.: me/bytebeats/agp.R$mipmap.class#ic_launcher => 0x0000001
      */
     private val mRInfoMap = mutableMapOf<String, Int>()
-    var mFieldCount = 0
+    var mRFieldCount = 0
+        private set
+    var mReducedRSize = 0
+        private set
+    var mReducedJarSize = 0
+        private set
+    var mReducedDirectorySize = 0
         private set
 
 
     fun clear() {
         mRInfoMap.clear()
-        mFieldCount = 0
+        mRFieldCount = 0
+        mReducedRSize = 0
+        mReducedJarSize = 0
+        mReducedDirectorySize = 0
     }
 
     fun getRInfoMappingSize(): Int = mRInfoMap.size
@@ -54,6 +65,7 @@ object InlineRUtil {
                     val rInnerClassShortName = shortName.replace("R\$", "").replace(".class", "")
                     var toBeKept = false
                     var bytes = jarFile.getInputStream(jarEntry).readBytes()
+                    val sizeBefore = bytes.size
                     val reader = ClassReader(bytes)
                     val writer = ClassWriter(ClassWriter.COMPUTE_FRAMES)
                     val visitor = object : ClassVisitor(Opcodes.ASM6, writer) {
@@ -66,7 +78,7 @@ object InlineRUtil {
                         ): FieldVisitor? {
                             if (value is Int) {
                                 val key = "${entryName.replace(".class", "")}#$name"
-                                mFieldCount++
+                                mRFieldCount++
                                 if (keepRInfo?.find { it.name == rInnerClassShortName }
                                         ?.shouldKeep(name) == true) {
                                     toBeKept = true
@@ -83,6 +95,8 @@ object InlineRUtil {
                     }
                     reader.accept(visitor, ClassReader.EXPAND_FRAMES)
                     bytes = writer.toByteArray()
+                    val sizeAfter = bytes.size
+                    mReducedRSize += sizeBefore - sizeAfter
                     if (bytes.isNotEmpty() && (toBeKept || isStyleable)) {
                         val zipEntry = ZipEntry(entryName)
                         jos.putNextEntry(zipEntry)
@@ -107,9 +121,13 @@ object InlineRUtil {
                 srcJarFile.getInputStream(entry).use { jis ->
                     val zipEntry = ZipEntry(entry.name)
                     var bytes = jis.readBytes()
-                    if (isClassFile(entry.name) && !isRClass(entry.name)) {
+                    val sizeBefore = bytes.size
+                    var sizeAfter = sizeBefore
+                    if ((entry.name.endsWith(".class"))) {
                         bytes = replaceRInfo(bytes, false)
+                        sizeAfter = bytes.size
                     }
+                    mReducedJarSize += sizeBefore - sizeAfter
                     if (bytes.isNotEmpty()) {
                         jos.putNextEntry(zipEntry)
                         jos.write(bytes)
@@ -124,15 +142,17 @@ object InlineRUtil {
     }
 
     fun replaceDirectoryFileRInfo2(dFile: File) {
-        isClassFile(dFile.absolutePath)
         if (dFile.isDirectory) {//&& !isRClass(dFile.absolutePath)
             dFile.walk().forEach { file ->
                 if (file.name.endsWith(".class")) {
                     val tgtFile = File(file.parentFile, "${file.name}.inliner.tmp")
                     FileOutputStream(tgtFile).use { fos ->
-                        var bytes = file.readBytes()
+                        var bytes = FileInputStream(file).readBytes()
+                        val sizeBefore = bytes.size
 //                        println("replacing: size1: = ${bytes.size}, ${file.path}")
-                        bytes = replaceRInfo(bytes, false)
+                        bytes = replaceRInfo(bytes, true)
+                        val sizeAfter = bytes.size
+                        mReducedDirectorySize += sizeBefore - sizeAfter
 //                        println("replacing: size2: = ${bytes.size}")
                         fos.write(bytes)
                         fos.close()
@@ -141,30 +161,42 @@ object InlineRUtil {
                     }
                 }
             }
-//            val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
-//            FileOutputStream(tgtFile).use { fos ->
-//                var bytes = dFile.readBytes()
-//                println("replacing: size1: = ${bytes.size}, ${dFile.path}")
-//                bytes = replaceRInfo(bytes, false)
-//                println("replacing: size2: = ${bytes.size}")
-//                fos.write(bytes)
-//                fos.close()
-//                dFile.delete()
-//                tgtFile.renameTo(dFile)
-//            }
         }
     }
 
     fun replaceDirectoryFileRInfo(dFile: File) {
-        if (isClassFile(dFile.absolutePath)) {//&& !isRClass(dFile.absolutePath)
-            val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
-            FileOutputStream(tgtFile).use { fos ->
-                var bytes = dFile.readBytes()
+//        if (dFile.name.endsWith(".class")) {//&& !isRClass(dFile.absolutePath)
+        val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
+        FileOutputStream(tgtFile).use { fos ->
+            var bytes = FileInputStream(dFile).readBytes()
+            val sizeBefore = bytes.size
 //                println("replacing: size1: = ${bytes.size}, ${dFile.path}")
-                bytes = replaceRInfo(bytes, false)
+            bytes = replaceRInfo(bytes, true)
+            val sizeAfter = bytes.size
+            mReducedDirectorySize += sizeBefore - sizeAfter
 //                println("replacing: size2: = ${bytes.size}")
-                fos.write(bytes)
-                fos.close()
+            fos.write(bytes)
+            fos.close()
+            dFile.delete()
+            tgtFile.renameTo(dFile)
+        }
+//        }
+    }
+
+    fun replaceDirectoryFileRInfo3(dFile: File) {
+
+        if (dFile.name.endsWith(".class")) {
+            FileInputStream(dFile).use { fis ->
+                var bytes = fis.readBytes()
+                val sizeBefore = bytes.size
+//                println("replacing: size1: = ${bytes.size}, ${dFile.path}")
+                bytes = replaceRInfo(bytes, true)
+                val sizeAfter = bytes.size
+                mReducedDirectorySize += sizeBefore - sizeAfter
+                val tgtFile = File(dFile.parentFile, "${dFile.name}.inliner.tmp")
+                FileOutputStream(tgtFile).use { fos ->
+                    fos.write(bytes)
+                }
                 dFile.delete()
                 tgtFile.renameTo(dFile)
             }
@@ -266,6 +298,30 @@ object InlineRUtil {
 
     private fun isClassFile(classFilePath: String): Boolean {
         return classFilePath.endsWith(".class")
+    }
+
+    fun formatFileSize(size: Int): String {
+        val formatted = StringBuilder()
+        var s = size
+        if (s > 0) {
+            val b = s % 1024
+            formatted.insert(0, "${b}B ")
+            s /= 1024
+        }
+        if (s > 0) {
+            val k = s % 1024
+            formatted.insert(0, "${k}K ")
+            s /= 1024
+        }
+        if (s > 0) {
+            val m = s % 1024
+            formatted.insert(0, "${m}M ")
+            s /= 1024
+        }
+        if (s > 0) {
+            formatted.insert(0, "${s}G ")
+        }
+        return formatted.toString()
     }
 
 }

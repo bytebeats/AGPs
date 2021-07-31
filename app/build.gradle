@@ -2,7 +2,8 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'chronus'
-    id 'inline-r'
+//    id 'inline-r'
+    id 'tinify'
 }
 
 android {
@@ -39,27 +40,31 @@ chronus {
     verbose false
 }
 
-inlineRConfig {
-    keepInfo {
-        mipmap {
-            keepPackageName = 'me.bytebeats.agps'
-            keepResNameRegex = ['ic_launcher.*']
-        }
+//inlineRConfig {
+//    keepInfo {
+//        mipmap {
+//            keepPackageName = 'me.bytebeats.agps'
+//            keepResNameRegex = ['ic_launcher.*']
+//        }
+//
+//        id {
+//            keepPackageName = 'androidx.activity'
+//            keepResNameRegex = ['accessibility_.*']
+//        }
+//
+//        layout {
+//            keepPackageName = 'me.bytebeats.agp.base'
+//            keepResName = ['activity_base_main']
+//        }
+//        string {
+//            keepPackageName = 'me.bytebeats.agps'
+//            keepResName = ['title_notifications']
+//        }
+//    }
+//}
 
-        id {
-            keepPackageName = 'androidx.activity'
-            keepResNameRegex = ['accessibility_.*']
-        }
-
-        layout {
-            keepPackageName = 'me.bytebeats.agp.base'
-            keepResName = ['activity_base_main']
-        }
-        string {
-            keepPackageName = 'me.bytebeats.agps'
-            keepResName = ['title_notifications']
-        }
-    }
+tinifyConfig {
+    apiKey = "rnD7KG3YgmwcfS6YL4qtL4PwKFZMtYvh"
 }
 
 dependencies {

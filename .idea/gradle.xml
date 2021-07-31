@@ -17,6 +17,7 @@
             <option value="$PROJECT_DIR$/inline-r" />
             <option value="$PROJECT_DIR$/probe-aar" />
             <option value="$PROJECT_DIR$/probe-core" />
+            <option value="$PROJECT_DIR$/tinify" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

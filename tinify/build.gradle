@@ -1,0 +1,47 @@
+plugins {
+    id 'java-library'
+    id 'kotlin'
+    id 'groovy'
+    id 'maven-publish'
+}
+
+ext {
+    TINIFY_ARTIFACT_ID = 'tinify'
+    TINIFY_VERSION = '0.0.1'
+    TINIFY_POM_DESCRIPTION = 'tinify: a gradle plugin using tinify api to compress pngs and jpgs in projects'
+}
+
+//apply from: 'mvnctl_publish_tinify.gradle'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_7
+    targetCompatibility = JavaVersion.VERSION_1_7
+}
+
+repositories {
+    mavenLocal()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+
+    //https://github.com/meili/TinyPIC_Gradle_Plugin
+    implementation 'com.tinify:tinify:1.6.4'
+
+}
+
+/**
+ * publish agp to local repository through maven-publish plugin
+ * run `./gradlew publishToMavenLocal` in Terminal to do the publishing
+ */
+project.publishing {
+    publications {
+        pluginPublication(MavenPublication) {
+            from components.java
+            groupId GROUP_ID
+            artifactId TINIFY_ARTIFACT_ID
+            version TINIFY_VERSION
+        }
+    }
+}

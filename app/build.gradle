@@ -1,9 +1,10 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
-    id 'chronus'
+//    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
+//    id 'chronus'
 //    id 'inline-r'
-    id 'tinify'
+//    id 'tinify'
 }
 
 android {
@@ -35,10 +36,10 @@ android {
     }
 }
 
-chronus {
-    enabled true
-    verbose false
-}
+//chronus {
+//    enabled true
+//    verbose false
+//}
 
 //inlineRConfig {
 //    keepInfo {
@@ -63,9 +64,9 @@ chronus {
 //    }
 //}
 
-tinifyConfig {
-    apiKey = "rnD7KG3YgmwcfS6YL4qtL4PwKFZMtYvh"
-}
+//tinifyConfig {
+//    apiKey = "rnD7KG3YgmwcfS6YL4qtL4PwKFZMtYvh"
+//}
 
 dependencies {
 
